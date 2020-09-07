@@ -1,5 +1,5 @@
 # ChatZone
-A realtime chat app created using nodejs, express, socketio and vanilla js by following this tutorial https://www.youtube.com/watch?v=jD7FnbI76Hg
+A realtime chat app created using nodejs, express, socketio and vanilla js. I followed this tutorial https://www.youtube.com/watch?v=jD7FnbI76Hg
 
 ![screenshot]
 
