@@ -4,6 +4,13 @@ const http = require('http');
 const socketio = require('socket.io');
 const app = express();
 const formatMessage = require('./utils/messages');
+const { 
+    getCurrentUser, 
+    userJoin,
+    getRoomUsers,
+    userLeave 
+} = require('./utils/users');
+
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
@@ -16,20 +23,46 @@ app.use(express.static(path.join(__dirname,'public')))
 
 //Run when a client connects
 io.on('connection',(socket)=>{
-    console.log("New connection");
 
-    socket.emit('message', formatMessage(BOTNAME,'Wellcome to the ChatZone'));
+    socket.on('joinRoom',({ username, room })=>{
 
-    //Broeadcast when a user joins 
-    socket.broadcast.emit('message',formatMessage(BOTNAME,'A user joined to the chat'));
+        const user = userJoin(socket.id, username, room);
+
+        socket.join(user.room);
+        //Wellcome new user
+        socket.emit('message', formatMessage(BOTNAME,'Wellcome to the ChatZone'));
+        // Broadcast when a user connects
+        socket.broadcast
+        .to(user.room)
+        .emit(
+        'message',
+        formatMessage(BOTNAME, `${user.username} has joined the chat`)
+        );
+
+        // Send users and room info
+        io.to(user.room).emit('roomUsers', {
+            room: user.room,
+            users: getRoomUsers(user.room)
+        });
+    })
 
     //Listen for chat message
     socket.on('chat-message',msg=>{
-        io.emit('message',formatMessage('USER',msg));
+        const user = getCurrentUser(socket.id);
+        io.to(user.room).emit('message',formatMessage(user.username,msg));
     })
 
     socket.on('disconnect',()=>{
-        io.emit('message',formatMessage(BOTNAME,'A users has left the chat'))
+        const user = userLeave(socket.id);
+        if(user){
+            io.to(user.room).emit('message',formatMessage(BOTNAME,`${user.username} has left the chat`))
+            
+            //Send users and room info
+            io.to(user.room).emit('roomUsers',{
+                room : user.room,
+                users : getRoomUsers(user.room) 
+            });
+        }
     })
 })
 
